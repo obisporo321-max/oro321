@@ -48,3 +48,5 @@ La app **no** carga facturas ficticias. Los únicos datos de ejemplo son el cat�
 - **Lectura automática de facturas (OCR/IA):** no está activada. La tabla `bill_extractions` ya existe; el plan es una Edge Function con la clave del proveedor guardada como secreto de Supabase (nunca en el navegador) que lea el archivo desde Storage y escriba el resultado ahí. Requiere elegir proveedor, definir costo por factura y configurar la clave.
 - **Notificaciones de vencimientos:** no implementadas. Requieren una tarea programada (pg_cron + Edge Function) y un canal (email/push). Los datos necesarios (`due_date`, `bills_overview.status`) ya están.
 - Edición de una factura ya cargada y borrado individual de pagos desde la interfaz (los servicios `Bills.update` y `Bills.deletePayment` ya existen).
+
+- Deploy inicial
