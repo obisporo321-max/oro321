@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="es-AR" data-theme="light" data-accent="indigo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f3f4fa">
+<meta name="color-scheme" content="light dark">
+<title>Mi Departamento</title>
+<script>
+/* Aplica el tema antes de pintar para evitar destellos. Más adelante puede leerse desde Supabase. */
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('md:theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark') {
+    t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --bg:#f3f4fa;--card:#fff;--text:#1a1c2c;--muted:#5d6280;--border:#e4e6f1;--tile:#eff0fa;
+  --shadow:0 1px 2px rgba(26,28,44,.04),0 10px 28px rgba(26,28,44,.07);
+  --accent:#5456e8;--accent-soft:#ebebff;--on-accent:#fff;--hero1:#5456e8;--hero2:#8a5cf0;
+  --ok:#0b6b40;--ok-bg:#d9f4e6;--warn:#8f5200;--warn-bg:#ffeecb;--bad:#a61f14;--bad-bg:#fde2df;--info:#25509f;--info-bg:#e0eaff;
+  --radius:22px;--radius-sm:14px;
+}
+[data-theme="dark"]{
+  --bg:#0d0f18;--card:#171a27;--text:#eef0fb;--muted:#a3a9c3;--border:#272b3e;--tile:#222638;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.4);
+  --accent:#a0a2ff;--accent-soft:#25284d;--on-accent:#0d0f18;--hero1:#3a3cbd;--hero2:#6a3fc8;
+  --ok:#72e3a9;--ok-bg:#12382a;--warn:#ffc860;--warn-bg:#3d2c0c;--bad:#ff9288;--bad-bg:#44191a;--info:#92b6ff;--info-bg:#16294b;
+}
+[data-accent="teal"]{--accent:#0a7c72;--accent-soft:#d4f2ee;--hero1:#0a7c72;--hero2:#1ca39d}
+[data-theme="dark"][data-accent="teal"]{--accent:#52dccf;--accent-soft:#12403d;--hero1:#0b5f58;--hero2:#14827e}
+[data-accent="rose"]{--accent:#d01b47;--accent-soft:#fde3e9;--hero1:#d01b47;--hero2:#ef6a5b}
+[data-theme="dark"][data-accent="rose"]{--accent:#ff8aa5;--accent-soft:#45202b;--hero1:#a5163a;--hero2:#c9473f}
+
+/* ============ BASE ============ */
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;color-scheme:light}
+html[data-theme="dark"]{color-scheme:dark}
+body{font-family:Inter,"SF Pro Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.45;min-height:100dvh;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+body.lock{overflow:hidden}
+html.theming *{transition:background-color .3s,color .3s,border-color .3s,box-shadow .3s!important}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+h1,h2,h3{line-height:1.2;letter-spacing:-.01em}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.reduce-motion *,.reduce-motion *::before,.reduce-motion *::after{transition:none!important;animation:none!important}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+
+/* ============ LAYOUT ============ */
+.app{display:flex;min-height:100dvh}
+.content{flex:1;min-width:0}
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:color-mix(in srgb,var(--bg) 86%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.05rem}
+.brand .logo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:1.3rem;background:linear-gradient(135deg,var(--hero1),var(--hero2))}
+main{padding:6px 16px calc(100px + env(safe-area-inset-bottom));max-width:1100px;margin:0 auto}
+.sidebar{display:none}
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--border);box-shadow:0 -6px 24px rgba(0,0,0,.05)}
+.nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;padding:6px 2px;border-radius:14px;color:var(--muted);font-size:.7rem;font-weight:600;position:relative;transition:color .2s,background-color .2s}
+.nav-btn svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-btn[aria-current="page"]{color:var(--accent);background:var(--accent-soft)}
+.nav-badge{position:absolute;top:2px;right:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:var(--on-accent);font-size:.68rem;font-weight:800;display:grid;place-items:center}
+@media (min-width:900px){
+  .sidebar{display:flex;flex-direction:column;gap:6px;width:252px;flex:none;position:sticky;top:0;height:100dvh;padding:26px 16px;background:var(--card);border-right:1px solid var(--border)}
+  .sidebar .brand{padding:0 8px 22px}
+  .sidebar .nav-btn{flex-direction:row;justify-content:flex-start;gap:12px;min-height:48px;padding:0 14px;font-size:.95rem}
+  .sidebar .nav-badge{position:static;margin-left:auto}
+  .side-foot{margin-top:auto;font-size:.78rem;color:var(--muted);padding:0 10px}
+  .bottom-nav,.brand-mobile{display:none}
+  .topbar{justify-content:flex-end;padding:18px 32px 6px}
+  main{padding:10px 32px 56px}
+}
+
+/* ============ THEME SWITCH ============ */
+.theme-switch{position:relative;width:72px;height:38px;border-radius:19px;background:var(--tile);border:1px solid var(--border);flex:none;box-shadow:inset 0 1px 3px rgba(0,0,0,.08)}
+.ts-knob{position:absolute;top:3px;left:3px;width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#ffe28f,#ffb44d);box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform .35s cubic-bezier(.5,1.4,.5,1),background .3s}
+[data-theme="dark"] .ts-knob{transform:translateX(34px);background:linear-gradient(135deg,#6a6ff5,#4a4f9c)}
+.ts-icon{position:absolute;top:50%;width:18px;height:18px;margin-top:-9px;z-index:1;color:var(--muted);transition:color .3s}
+.ts-icon svg{display:block;width:18px;height:18px}
+.ts-sun{left:9px}.ts-moon{right:9px}
+[data-theme="light"] .ts-sun{color:#6e3500}
+[data-theme="dark"] .ts-moon{color:#fff}
+
+/* ============ COMPONENTES ============ */
+.view-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:10px 0 16px}
+.view-head h1{font-size:1.55rem}
+.sub{color:var(--muted);font-size:.92rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+.card h2{font-size:1.05rem;margin-bottom:12px}
+.stack{display:grid;gap:16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:15px;background:var(--accent);color:var(--on-accent);font-weight:700;transition:transform .15s,filter .2s}
+.btn:hover{filter:brightness(1.06)}.btn:active{transform:scale(.97)}
+.btn.ghost{background:var(--tile);color:var(--text)}
+.btn.danger{background:var(--bad-bg);color:var(--bad)}
+.btn.sm{min-height:40px;padding:0 14px;font-size:.88rem;border-radius:12px}
+.btn.block{width:100%}
+.icon-btn{width:42px;height:42px;border-radius:12px;background:var(--tile);display:grid;place-items:center;font-size:1rem}
+.link{color:var(--accent);font-weight:700;padding:8px 0;text-align:left}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:.76rem;font-weight:700;white-space:nowrap}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}.badge.warn{background:var(--warn-bg);color:var(--warn)}
+.badge.bad{background:var(--bad-bg);color:var(--bad)}.badge.info{background:var(--info-bg);color:var(--info)}
+.demo{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:6px;font-size:.62rem;font-weight:800;letter-spacing:.06em;background:var(--tile);color:var(--muted);vertical-align:middle}
+.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--radius-sm);background:var(--info-bg);color:var(--info);font-size:.86rem;font-weight:500}
+.note.warn{background:var(--warn-bg);color:var(--warn)}
+.empty{text-align:center;padding:36px 16px;color:var(--muted)}
+.empty .big{font-size:3rem;margin-bottom:8px}
+
+/* Hero */
+.hero{color:#fff;border:0;background:linear-gradient(135deg,var(--hero1),var(--hero2));box-shadow:0 14px 34px color-mix(in srgb,var(--hero1) 40%,transparent)}
+.hero .sub{color:rgba(255,255,255,.85)}
+.hero .big{font-size:2.15rem;font-weight:800;letter-spacing:-.02em;margin:4px 0 2px}
+.hero-split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.hero-split div{background:rgba(255,255,255,.16);border-radius:16px;padding:12px 14px}
+.hero-split small{display:block;font-size:.76rem;opacity:.9}
+.hero-split strong{font-size:1.08rem}
+.chip{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.2);font-size:.82rem;font-weight:700}
+.greet{margin:6px 0 16px}
+.greet h1{font-size:1.7rem}
+.home-grid{display:grid;gap:16px}
+@media (min-width:900px){.home-grid{grid-template-columns:1.5fr 1fr;align-items:start}.home-grid .span{grid-column:1/-1}}
+
+/* Filas */
+.rows{display:grid;gap:12px}
+.row{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:center;padding:14px;border-radius:var(--radius-sm);background:var(--card);border:1px solid var(--border);border-left:5px solid var(--border);cursor:default}
+.row[data-state="pagado"]{border-left-color:var(--ok)}.row[data-state="proximo"]{border-left-color:#e29a1b}
+.row[data-state="vencido"]{border-left-color:var(--bad)}.row[data-state="confirmar"]{border-left-color:#4f7fe0}
+.tile{width:46px;height:46px;border-radius:15px;background:var(--tile);display:grid;place-items:center;font-size:1.6rem;flex:none}
+.row-title{font-weight:700}.row-sub{font-size:.84rem;color:var(--muted)}
+.row-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;font-size:.82rem;color:var(--muted)}
+.amt{font-size:1.05rem;text-align:right}
+.row-actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.row-actions .btn{flex:1 1 130px}
+button.row{width:100%;text-align:left}
+
+/* Accesos rápidos */
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.quick button{display:flex;flex-direction:column;gap:8px;align-items:flex-start;padding:16px;border-radius:var(--radius-sm);background:var(--tile);text-align:left;font-weight:700;min-height:92px;transition:transform .15s,background-color .2s}
+.quick button:hover{background:var(--accent-soft)}.quick button:active{transform:scale(.97)}
+.quick .em{font-size:1.9rem}
+
+/* Formularios */
+.field{display:grid;gap:6px;margin-bottom:14px}
+.field>span{font-size:.86rem;font-weight:700}
+.field small{color:var(--muted);font-size:.78rem}
+input[type=text],input[type=number],input[type=date],input[type=search],select,textarea,input[type=file]{width:100%;min-height:48px;padding:10px 14px;border-radius:14px;border:1.5px solid var(--border);background:var(--bg);font-size:16px}
+textarea{min-height:84px;resize:vertical}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.filters .full{grid-column:1/-1}
+@media (min-width:700px){.filters{grid-template-columns:2fr 1fr 1fr 1fr}.filters .full{grid-column:auto}}
+.form-actions{display:flex;gap:10px;position:sticky;bottom:-1px;padding:12px 0 2px;background:linear-gradient(transparent,var(--card) 30%)}
+.form-actions .btn{flex:1}
+.preview{border:1.5px dashed var(--border);border-radius:14px;padding:12px;display:flex;gap:12px;align-items:center;margin:-4px 0 14px;font-size:.88rem;word-break:break-all}
+.preview img{width:84px;height:84px;object-fit:cover;border-radius:10px}
+.emoji-pick{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.emoji-pick button{width:44px;height:44px;border-radius:12px;background:var(--tile);font-size:1.5rem;border:2px solid transparent}
+.emoji-pick button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+
+/* Chips y segmentado */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;margin:0 -16px;padding-inline:16px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip-btn{flex:none;min-height:42px;padding:0 16px;border-radius:99px;background:var(--card);border:1.5px solid var(--border);font-weight:600;font-size:.9rem}
+.chip-btn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--tile);border-radius:16px;margin-bottom:16px}
+.seg button{min-height:46px;border-radius:12px;font-weight:700;color:var(--muted);display:flex;gap:8px;align-items:center;justify-content:center}
+.seg button[aria-selected="true"]{background:var(--card);color:var(--text);box-shadow:var(--shadow)}
+.count{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--accent);color:var(--on-accent);font-size:.75rem;font-weight:800}
+
+/* Productos */
+.pgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media (min-width:520px){.pgrid{grid-template-columns:repeat(3,1fr)}}
+@media (min-width:760px){.pgrid{grid-template-columns:repeat(4,1fr)}}
+@media (min-width:1050px){.pgrid{grid-template-columns:repeat(6,1fr)}}
+.pcard{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:140px;padding:16px 10px;border-radius:var(--radius);background:var(--card);border:2.5px solid var(--border);box-shadow:var(--shadow);text-align:center;font-weight:700;transition:transform .2s,border-color .2s,background-color .2s}
+.pcard:active{transform:scale(.95)}
+.pcard .em{font-size:2.6rem;line-height:1;transition:transform .25s}
+.pcard small{font-weight:500;color:var(--muted);font-size:.76rem}
+.pcard .tag{position:absolute;top:8px;right:8px;display:inline-flex;gap:4px;align-items:center;padding:3px 9px;border-radius:99px;background:var(--accent);color:var(--on-accent);font-size:.7rem;font-weight:800;opacity:0;transform:scale(.6);transition:opacity .2s,transform .25s cubic-bezier(.5,1.6,.5,1)}
+.pcard[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.pcard[aria-pressed="true"] .tag{opacity:1;transform:scale(1)}
+.pcard[aria-pressed="true"] .em{transform:scale(1.12) rotate(-4deg)}
+.list-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.list-actions .btn{flex:1 1 150px}
+
+/* Gráficos */
+.bars{display:grid;gap:12px}
+.bar-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:.88rem}
+.bar-track{height:12px;border-radius:6px;background:var(--tile);overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--hero1),var(--hero2));transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.cols{display:flex;align-items:flex-end;gap:10px;height:170px;padding-top:8px}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;min-width:0}
+.col-bar{width:100%;max-width:56px;display:flex;flex-direction:column;justify-content:flex-end;border-radius:10px 10px 4px 4px;overflow:hidden;transition:height .6s cubic-bezier(.2,.8,.2,1)}
+.seg-paid{background:var(--accent)}.seg-pend{background:repeating-linear-gradient(45deg,#e29a1b,#e29a1b 4px,#f3b84c 4px,#f3b84c 8px)}
+.col small{font-size:.74rem;color:var(--muted);font-weight:600}
+.col.active small{color:var(--text);font-weight:800}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:.8rem;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:6px;vertical-align:-1px}
+.sum3{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sum3 .card:first-child{grid-column:1/-1}
+.sum3 .lbl{font-size:.82rem;color:var(--muted);font-weight:600}.sum3 .val{font-size:1.45rem;font-weight:800;margin-top:2px}
+@media (min-width:760px){.sum3{grid-template-columns:repeat(3,1fr)}.sum3 .card:first-child{grid-column:auto}}
+.two{display:grid;gap:16px}@media (min-width:900px){.two{grid-template-columns:1fr 1fr}}
+details.cat{border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card);overflow:hidden}
+details.cat+details.cat{margin-top:10px}
+details.cat summary{display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;list-style:none;min-height:60px}
+details.cat summary::-webkit-details-marker{display:none}
+details.cat summary .grow{flex:1;min-width:0;font-weight:700}
+details.cat summary .grow small{display:block;color:var(--muted);font-weight:500}
+details.cat summary::after{content:"›";font-size:1.4rem;color:var(--muted);transition:transform .2s}
+details.cat[open] summary::after{transform:rotate(90deg)}
+details.cat .rows{padding:0 12px 12px}
+
+/* Servicios */
+.svc{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center}
+.svc .row-actions{margin-top:10px}
+
+/* Ajustes */
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--border)}
+.switch-row:last-child{border:0}
+.switch-row small{display:block;color:var(--muted)}
+.switch{position:relative;width:54px;height:32px;flex:none;border-radius:16px;background:var(--border);transition:background-color .25s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3);transition:transform .25s}
+.switch[aria-checked="true"]{background:var(--accent)}.switch[aria-checked="true"]::after{transform:translateX(22px)}
+.radio-group{display:flex;gap:10px;flex-wrap:wrap}
+.radio-group button{flex:1 1 110px;min-height:48px;border-radius:14px;border:2px solid var(--border);font-weight:700;background:var(--bg)}
+.radio-group button[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.swatch{display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+
+/* Modal */
+.modal-root{position:fixed;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center}
+.modal-backdrop{position:absolute;inset:0;background:rgba(8,10,20,.55);opacity:0;transition:opacity .25s}
+.modal{position:relative;width:100%;max-width:560px;max-height:92dvh;display:flex;flex-direction:column;background:var(--card);color:var(--text);border-radius:26px 26px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.3);transform:translateY(40px);opacity:0;transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .25s}
+.modal-root.open .modal-backdrop{opacity:1}.modal-root.open .modal{transform:none;opacity:1}
+.modal header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px 10px}
+.modal header h3{font-size:1.2rem}
+.modal-body{overflow-y:auto;padding:6px 20px calc(18px + env(safe-area-inset-bottom));overscroll-behavior:contain}
+@media (min-width:640px){.modal-root{align-items:center}.modal{border-radius:26px;max-height:88dvh}}
+.detail dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:14px 0}
+.detail dt{color:var(--muted);font-size:.88rem}.detail dd{font-weight:600;text-align:right;word-break:break-word}
+
+/* Toasts */
+#toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + env(safe-area-inset-bottom));z-index:200;display:grid;gap:8px;width:min(92vw,420px);pointer-events:none}
+@media (min-width:900px){#toasts{bottom:28px}}
+.toast{padding:13px 16px;border-radius:14px;background:var(--text);color:var(--bg);font-weight:600;font-size:.92rem;box-shadow:0 10px 30px rgba(0,0,0,.3);animation:toast-in .3s cubic-bezier(.2,.8,.2,1)}
+.toast.bad{background:var(--bad);color:#fff}
+.toast.out{opacity:0;transform:translateY(8px);transition:all .3s}
+@keyframes toast-in{from{opacity:0;transform:translateY(12px)}}
+.fade{animation:fade .3s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}}
+.gate{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:20px;background:var(--bg);overflow-y:auto}
+.gate-card{width:min(100%,440px)}.gate-card h1{font-size:1.4rem;margin-bottom:6px}.gate-card .sub{margin-bottom:16px}
+input[type=password]{width:100%;min-height:48px;padding:10px 14px;border-radius:14px;border:1.5px solid var(--border);background:var(--bg);font-size:16px}
+button:disabled{opacity:.6;cursor:progress}
+</style>
+</head>
+<body>
+<noscript><p style="padding:24px">Mi Departamento necesita JavaScript para funcionar.</p></noscript>
+<div id="gate" class="gate" role="dialog" aria-modal="true" aria-label="Acceso" hidden></div>
+<div class="app">
+  <aside class="sidebar" aria-label="Navegación principal">
+    <div class="brand"><span class="logo" aria-hidden="true">🏢</span><span data-home-name>Mi Departamento</span></div>
+    <nav id="sideNav" class="stack" style="gap:6px"></nav>
+    <p class="side-foot">Fase 2 · Conectado a Supabase</p>
+  </aside>
+  <div class="content">
+    <header class="topbar">
+      <div class="brand brand-mobile"><span class="logo" aria-hidden="true">🏢</span><span data-home-name>Mi Departamento</span></div>
+      <button class="theme-switch" id="themeSwitch" role="switch" aria-checked="false" aria-label="Modo oscuro" data-action="toggle-theme">
+        <span class="ts-icon ts-sun" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg></span>
+        <span class="ts-icon ts-moon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a.7.7 0 0 0-.9-.9A10 10 0 1 0 21.4 15.5a.7.7 0 0 0-.9-.9z"/></svg></span>
+        <span class="ts-knob" aria-hidden="true"></span>
+      </button>
+    </header>
+    <main id="main" tabindex="-1"></main>
+  </div>
+</div>
+<nav class="bottom-nav" id="bottomNav" aria-label="Navegación principal"></nav>
+
+<div id="modalRoot" class="modal-root" hidden>
+  <div class="modal-backdrop" data-action="modal-close"></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <header><h3 id="modalTitle"></h3><button class="icon-btn" data-action="modal-close" aria-label="Cerrar ventana">✕</button></header>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+<div id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
+const M_errors = (() => {
+/** Traduce errores de Supabase/PostgREST/red a mensajes comprensibles. */
+function friendlyError(err) {
+  const m = String(err?.message || err || '');
+  const code = err?.code || '';
+  if (/Invalid login credentials/i.test(m)) return 'Correo o contraseña incorrectos.';
+  if (/Email not confirmed/i.test(m)) return 'Todavía no confirmaste tu correo. Revisá tu bandeja de entrada.';
+  if (/User already registered/i.test(m)) return 'Ya existe una cuenta con ese correo. Probá iniciar sesión.';
+  if (/Password should be at least|weak/i.test(m)) return 'La contraseña es demasiado débil (mínimo 8 caracteres).';
+  if (/rate limit|too many/i.test(m)) return 'Demasiados intentos. Esperá unos minutos y probá de nuevo.';
+  if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'Sin conexión con el servidor. Revisá tu internet.';
+  if (/JWT expired|not authenticated|Auth session missing/i.test(m)) return 'Tu sesión venció. Volvé a iniciar sesión.';
+  if (code === '23505') return 'Ya existe un registro con ese nombre.';
+  if (/new row violates row-level security|permission denied/i.test(m)) return 'No tenés permiso para hacer esto.';
+  if (/mime type|not allowed|exceeded the maximum/i.test(m)) return 'Archivo no admitido: usá PDF, JPG, PNG o WEBP de hasta 10 MB.';
+  // Mensajes propios de la base (ya están en español)
+  if (['P0001', '23514', '23503', '42501', '28000'].includes(code) && /[áéíóúñ ]/.test(m)) return m;
+  return 'Ocurrió un error inesperado. Probá de nuevo.';
+}
+
+return { friendlyError };
+})();
+const M_supabase = (() => {
+
+const url = 'https://kbrhrsgrbzqmzceqqfzk.supabase.co';
+const key = 'sb_publishable_w9S6RxNJqoL-f6qsMHYrvA_DJ1vnL13';
+
+/** Solo se usa la clave pública (publishable/anon). La seguridad real la dan las políticas RLS. */
+const configError = !url || !key
+  ? 'Faltan VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY. Copiá .env.example a .env.local y completalo.'
+  : null;
+
+const supabase = configError ? null : createClient(url, key, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+});
+
+return { configError, supabase };
+})();
+const M_auth = (() => {
+const { supabase } = M_supabase;
+
+const must = ({ data, error }) => { if (error) throw error; return data; };
+
+const getSession = async () => must(await supabase.auth.getSession()).session;
+const getUser = async () => must(await supabase.auth.getUser()).user;
+const signUp = async (email, password) =>
+  must(await supabase.auth.signUp({ email, password, options: { emailRedirectTo: location.origin } }));
+const signIn = async (email, password) => must(await supabase.auth.signInWithPassword({ email, password }));
+const signOut = async () => { const { error } = await supabase.auth.signOut(); if (error) throw error; };
+const resetPassword = async email =>
+  must(await supabase.auth.resetPasswordForEmail(email, { redirectTo: location.origin }));
+const updatePassword = async password => must(await supabase.auth.updateUser({ password }));
+
+return { getSession, getUser, signUp, signIn, signOut, resetPassword, updatePassword };
+})();
+const M_households = (() => {
+const { supabase } = M_supabase;
+const must = ({ data, error }) => { if (error) throw error; return data; };
+
+async function getMine(userId) {
+  const row = must(await supabase.from('household_members')
+    .select('role, display_name, household:households(id, name, address, address_confirmed)')
+    .eq('user_id', userId).maybeSingle());
+  return row && row.household ? { ...row.household, role: row.role, displayName: row.display_name } : null;
+}
+const listMembers = async hid =>
+  must(await supabase.from('household_members').select('user_id, role, display_name, joined_at').eq('household_id', hid).order('joined_at'));
+const update = async (hid, patch) =>
+  must(await supabase.from('households').update(patch).eq('id', hid).select().single());
+const create = async (name, displayName) =>
+  must(await supabase.rpc('create_household', { p_name: name, p_display_name: displayName }));
+const joinWithCode = async (code, displayName) =>
+  must(await supabase.rpc('join_household_with_code', { p_code: code, p_display_name: displayName }));
+const createInvite = async (hid, email) =>
+  must(await supabase.rpc('create_household_invite', { p_household: hid, p_email: email || null }));
+
+return { getMine, listMembers, update, create, joinWithCode, createInvite };
+})();
+const M_catalog = (() => {
+const { supabase } = M_supabase;
+const must = ({ data, error }) => { if (error) throw error; return data; };
+
+const list = async () => must(await supabase.from('services').select('*').order('name'));
+const create = async (hid, s) => must(await supabase.from('services')
+  .insert({ household_id: hid, name: s.name, company: s.company || null, category: s.category, description: s.description || null }).select().single());
+const update = async (id, s) => must(await supabase.from('services')
+  .update({ name: s.name, company: s.company || null, category: s.category, description: s.description || null }).eq('id', id).select().single());
+const setArchived = async (id, archived) => must(await supabase.from('services')
+  .update({ archived_at: archived ? new Date().toISOString() : null }).eq('id', id).select().single());
+
+return { list, create, update, setArchived };
+})();
+const M_bills = (() => {
+const { supabase } = M_supabase;
+const must = ({ data, error }) => { if (error) throw error; return data; };
+const BUCKET = 'bill-files';
+
+/** Lectura: la vista calcula pagado, saldo y estado a partir de los pagos reales. */
+const list = async () => must(await supabase.from('bills_overview').select('*').order('due_date', { ascending: false }).limit(5000));
+const create = async row => must(await supabase.from('bills').insert(row).select().single());
+const update = async (id, patch) => must(await supabase.from('bills').update(patch).eq('id', id).select().single());
+const remove = async id => must(await supabase.from('bills').delete().eq('id', id));
+
+const registerPayment = async ({ billId, amount, paidOn, method, notes }) =>
+  must(await supabase.rpc('register_payment', { p_bill: billId, p_amount: amount, p_paid_on: paidOn, p_method: method, p_notes: notes || null }));
+const createExpense = async ({ householdId, name, category, amount, date, method }) =>
+  must(await supabase.rpc('create_expense', { p_household: householdId, p_name: name, p_category: category, p_amount: amount, p_date: date, p_method: method || 'Efectivo' }));
+const listPayments = async billId => must(await supabase.from('payments').select('*').eq('bill_id', billId).order('paid_on'));
+const deletePayment = async id => must(await supabase.from('payments').delete().eq('id', id));
+
+/* Comprobantes privados: ruta <hogar>/<factura>/<uuid>-<nombre>; se leen con URLs firmadas de corta vida */
+async function uploadFile(hid, billId, file) {
+  const safe = file.name.replace(/[^A-Za-z0-9._-]/g, '_').slice(-80);
+  const path = `${hid}/${billId}/${crypto.randomUUID()}-${safe}`;
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw error;
+  return path;
+}
+const removeFile = async path => must(await supabase.storage.from(BUCKET).remove([path]));
+const addAttachment = async row => must(await supabase.from('bill_attachments').insert(row).select().single());
+const listAttachments = async billId => must(await supabase.from('bill_attachments').select('*').eq('bill_id', billId).order('created_at'));
+async function signedUrl(path, seconds = 300) {
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, seconds);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+return { list, create, update, remove, registerPayment, createExpense, listPayments, deletePayment, uploadFile, removeFile, addAttachment, listAttachments, signedUrl };
+})();
+const M_products = (() => {
+const { supabase } = M_supabase;
+const must = ({ data, error }) => { if (error) throw error; return data; };
+
+const list = async () => must(await supabase.from('products').select('*').order('name'));
+const create = async (hid, p) => must(await supabase.from('products')
+  .insert({ household_id: hid, name: p.name, emoji: p.emoji, category: p.category }).select().single());
+const setNeedsPurchase = async (id, value) =>
+  must(await supabase.from('products').update({ needs_purchase: value }).eq('id', id).select().single());
+const remove = async id => must(await supabase.from('products').delete().eq('id', id));
+const seedStarter = async hid => must(await supabase.rpc('seed_starter_products', { p_household: hid }));
+
+return { list, create, setNeedsPurchase, remove, seedStarter };
+})();
+const M_store = (() => {
+/* Capa de negocio: mantiene una caché en memoria hidratada desde Supabase.
+   La interfaz lee de forma síncrona (getX) y escribe con métodos async que
+   llaman a los servicios y luego recargan los datos desde el servidor. */
+const Auth = M_auth;
+const Homes = M_households;
+const Catalog = M_catalog;
+const Bills = M_bills;
+const Products = M_products;
+
+const DEFAULT_SETTINGS = { home: 'Mi Departamento', address: '', addressConfirmed: false, accent: 'indigo', reduceMotion: false, notifDue: true, notifList: false };
+const PREFS_KEY = 'md:prefs'; // preferencias personales (solo este dispositivo)
+const cache = { user: null, household: null, members: [], services: [], bills: [], products: [] };
+const localPrefs = () => { try { return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}'); } catch { return {}; } };
+
+const mapService = r => ({ id: r.id, name: r.name, company: r.company || '', category: r.category, description: r.description || '', archived: !!r.archived_at, demo: r.is_demo });
+const mapBill = r => ({
+  id: r.id, serviceId: r.service_id, name: r.name, company: r.company || '', category: r.category, kind: r.kind,
+  amount: Number(r.amount), paid: Number(r.paid_amount), balance: Number(r.balance), period: r.period.slice(0, 7), due: r.due_date,
+  paidOn: r.last_paid_on, method: r.last_method, status: r.status, confirmed: r.confirmed, demo: r.is_demo,
+  consumption: r.consumption_units != null ? { units: Number(r.consumption_units), unit: r.consumption_unit } : null
+});
+const mapProduct = r => ({ id: r.id, name: r.name, emoji: r.emoji, category: r.category, pending: r.needs_purchase, demo: r.is_demo });
+
+const Store = {
+  /** Carga el hogar del usuario y sus datos. Devuelve false si todavía no pertenece a ningún hogar. */
+  async load() {
+    cache.user = await Auth.getUser();
+    const h = await Homes.getMine(cache.user.id);
+    if (!h) { cache.household = null; return false; }
+    cache.household = { id: h.id, name: h.name, address: h.address, addressConfirmed: h.address_confirmed, role: h.role, displayName: h.displayName };
+    const [members, services, bills, products] = await Promise.all([Homes.listMembers(h.id), Catalog.list(), Bills.list(), Products.list()]);
+    cache.members = members.map(m => ({ userId: m.user_id, role: m.role, name: m.display_name }));
+    cache.services = services.map(mapService); cache.bills = bills.map(mapBill); cache.products = products.map(mapProduct);
+    return true;
+  },
+  async reloadBills() { cache.bills = (await Bills.list()).map(mapBill); },
+  async reloadServices() { cache.services = (await Catalog.list()).map(mapService); },
+  async reloadProducts() { cache.products = (await Products.list()).map(mapProduct); },
+
+  getUser: () => cache.user, getHousehold: () => cache.household, getMembers: () => cache.members,
+  getServices: () => cache.services, getBills: () => cache.bills, getProducts: () => cache.products,
+
+  /* Preferencias: nombre/dirección del hogar son compartidas (BD); tema, acento y avisos son personales (local). */
+  getSettings() {
+    const h = cache.household || {};
+    return { ...DEFAULT_SETTINGS, ...localPrefs(), home: h.name || DEFAULT_SETTINGS.home, address: h.address || '', addressConfirmed: !!h.addressConfirmed };
+  },
+  saveSettings(s) {
+    const { accent, reduceMotion, notifDue, notifList } = s;
+    try { localStorage.setItem(PREFS_KEY, JSON.stringify({ accent, reduceMotion, notifDue, notifList })); } catch {}
+  },
+  async saveHousehold({ name, address }) {
+    const r = await Homes.update(cache.household.id, { name, address: address || null, address_confirmed: !!address });
+    Object.assign(cache.household, { name: r.name, address: r.address, addressConfirmed: r.address_confirmed });
+  },
+  async createInvite(email) { return Homes.createInvite(cache.household.id, email); },
+
+  /* Servicios */
+  async addService(d) { await Catalog.create(cache.household.id, d); await this.reloadServices(); },
+  async updateService(id, d) { await Catalog.update(id, d); await this.reloadServices(); },
+  async setServiceArchived(id, archived) { await Catalog.setArchived(id, archived); await this.reloadServices(); return cache.services.find(s => s.id === id); },
+
+  /* Facturas: sube el archivo, crea el registro y lo asocia; si algo falla deshace todo lo anterior. */
+  async addInvoice({ file, serviceId, newService, amount, due, period, consumption }) {
+    const hid = cache.household.id;
+    let svc;
+    if (newService) { svc = mapService(await Catalog.create(hid, newService)); cache.services.push(svc); }
+    else svc = cache.services.find(s => s.id === serviceId);
+    const billId = crypto.randomUUID();
+    let path = null, billCreated = false;
+    try {
+      path = await Bills.uploadFile(hid, billId, file);
+      await Bills.create({
+        id: billId, household_id: hid, service_id: svc.id, name: svc.name, company: svc.company || null, category: svc.category,
+        kind: 'factura', amount, due_date: due, period: period + '-01', confirmed: false,
+        consumption_units: consumption ? consumption.units : null, consumption_unit: consumption ? consumption.unit : null
+      });
+      billCreated = true;
+      await Bills.addAttachment({ household_id: hid, bill_id: billId, storage_path: path, original_name: file.name, mime_type: file.type, size_bytes: file.size });
+    } catch (err) {
+      if (billCreated) await Bills.remove(billId).catch(() => {});
+      if (path) await Bills.removeFile(path).catch(() => {});
+      throw err;
+    }
+    await this.reloadBills();
+  },
+  async addExpense({ name, category, amount, date }) {
+    await Bills.createExpense({ householdId: cache.household.id, name, category, amount, date });
+    await this.reloadBills();
+  },
+  async registerPayment(billId, { amount, paidOn, method }) { await Bills.registerPayment({ billId, amount, paidOn, method }); await this.reloadBills(); },
+  async confirmBill(id) { await Bills.update(id, { confirmed: true }); await this.reloadBills(); },
+  async deleteBill(id) {
+    const files = await Bills.listAttachments(id);
+    await Bills.remove(id);
+    await Promise.all(files.map(f => Bills.removeFile(f.storage_path).catch(() => {})));
+    await this.reloadBills();
+  },
+  async getAttachmentLinks(billId) {
+    const files = await Bills.listAttachments(billId);
+    return Promise.all(files.map(async f => ({ name: f.original_name, url: await Bills.signedUrl(f.storage_path) })));
+  },
+
+  /* Productos (optimista con reversión si falla) */
+  async addProduct(p) { await Products.create(cache.household.id, p); await this.reloadProducts(); },
+  async setProductPending(id, pending) {
+    const p = cache.products.find(x => x.id === id); if (!p) return null;
+    const prev = p.pending; p.pending = pending;
+    try { await Products.setNeedsPurchase(id, pending); } catch (err) { p.pending = prev; throw err; }
+    return p;
+  },
+  async seedProducts() { const n = await Products.seedStarter(cache.household.id); await this.reloadProducts(); return n; }
+};
+
+return { DEFAULT_SETTINGS, Store };
+})();
+const M_app = (() => {
+const { Store, DEFAULT_SETTINGS } = M_store;
+const { friendlyError } = M_errors;
+const Auth = M_auth;
+/* =====================================================================
+   MI DEPARTAMENTO · Fase 2 (datos en Supabase)
+   Bloques: 1) utilidades  2) capa de almacenamiento (reemplazable por Supabase)
+            3) lógica de dominio  4) vistas  5) modales  6) eventos
+   ===================================================================== */
+
+/* ---------- 1. UTILIDADES ---------- */
+const TZ = 'America/Argentina/Cordoba';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const money = n => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0);
+const todayISO = () => new Date().toLocaleDateString('en-CA', { timeZone: TZ });
+const dateObj = iso => new Date(iso + 'T12:00:00Z');
+const addDays = (iso, n) => { const d = dateObj(iso); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const monthKey = iso => iso.slice(0, 7);
+const addMonths = (key, n) => { const [y, m] = key.split('-').map(Number); const d = new Date(Date.UTC(y, m - 1 + n, 15)); return d.toISOString().slice(0, 7); };
+const fmtDate = iso => dateObj(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', timeZone: 'UTC' }).replace('.', '');
+const fmtDateLong = iso => dateObj(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const periodLabel = key => cap(new Date(key + '-15T12:00:00Z').toLocaleDateString('es-AR', { month: 'long', year: 'numeric', timeZone: 'UTC' }));
+const monthShort = key => new Date(key + '-15T12:00:00Z').toLocaleDateString('es-AR', { month: 'short', timeZone: 'UTC' }).replace('.', '');
+const norm = s => String(s).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+const CATEGORIES = [
+  { name: 'Alquiler', emoji: '🏠' }, { name: 'Electricidad', emoji: '💡' }, { name: 'Gas', emoji: '🔥' },
+  { name: 'Agua', emoji: '💧' }, { name: 'Internet', emoji: '🌐' }, { name: 'Impuestos', emoji: '🏛️' },
+  { name: 'Expensas', emoji: '🏢' }, { name: 'Otros', emoji: '📦' }
+];
+const PRODUCT_CATEGORIES = ['Higiene personal', 'Baño', 'Cocina', 'Limpieza', 'Alimentos', 'Otros'];
+const EMOJI_CHOICES = ['🪥', '🧻', '🧴', '🧼', '🧽', '🧹', '🫧', '🧺', '🥛', '🍞', '🥚', '🍚', '☕', '🍝', '🥫', '🧂', '🍎', '🧃', '🛒', '📦'];
+const PAY_METHODS = ['Transferencia', 'Débito automático', 'Tarjeta', 'Efectivo', 'Otro'];
+const STATUS = {
+  pagado: { label: 'Pagado', icon: '✓', cls: 'ok' },
+  proximo: { label: 'Próximo a vencer', icon: '⏰', cls: 'warn' },
+  vencido: { label: 'Vencido', icon: '⚠️', cls: 'bad' },
+  confirmar: { label: 'Pendiente de confirmar', icon: '❔', cls: 'info' }
+};
+const catMeta = name => CATEGORIES.find(c => c.name === name) || CATEGORIES[CATEGORIES.length - 1];
+
+const ICONS = {
+  home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+  gastos: '<path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/>',
+  facturas: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  hogar: '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
+  ajustes: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>'
+};
+const NAV = [
+  { id: 'home', label: 'Inicio' }, { id: 'gastos', label: 'Gastos' }, { id: 'facturas', label: 'Facturas' },
+  { id: 'hogar', label: 'Mi hogar' }, { id: 'ajustes', label: 'Ajustes' }
+];
+
+/* ---------- 2. DATOS: ver store.js y services/ (Supabase) ---------- */
+
+/* ---------- 3. LÓGICA DE DOMINIO ---------- */
+const state = { view: 'home', from: 'home', hogarTab: 'productos', prodCat: 'Todas', prodQ: '', billQ: '', billService: '', billStatus: '', billMonth: '', gastosMonth: monthKey(todayISO()) };
+
+const billState = b => b.status; // el estado lo deriva la base a partir de los pagos reales
+const activeServices = () => Store.getServices().filter(s => !s.archived);
+const pendingProducts = () => Store.getProducts().filter(p => p.pending);
+function monthTotals(key) {
+  const c = n => Math.round(n * 100) / 100, l = Store.getBills().filter(b => b.period === key);
+  const total = c(l.reduce((a, b) => a + b.amount, 0)), paid = c(l.reduce((a, b) => a + b.paid, 0));
+  return { total, paid, pending: c(total - paid), count: l.length };
+}
+function categoryTotals(key) {
+  return CATEGORIES.map(c => {
+    const items = Store.getBills().filter(b => b.period === key && b.category === c.name);
+    return { ...c, items, total: items.reduce((a, b) => a + b.amount, 0) };
+  }).filter(c => c.items.length);
+}
+function monthlySeries(key, n = 6) {
+  return Array.from({ length: n }, (_, i) => {
+    const k = addMonths(key, i - (n - 1)); const t = monthTotals(k);
+    return { key: k, label: monthShort(k), total: t.total, paid: t.paid, pending: t.pending };
+  });
+}
+
+/* ---------- 4. VISTAS ---------- */
+const $main = $('#main');
+
+function billRow(b, withActions = true) {
+  const s = billState(b), m = STATUS[s], c = catMeta(b.category);
+  const isBill = b.kind !== 'gasto';
+  return `<article class="row" data-state="${s}">
+    <div class="tile" aria-hidden="true">${c.emoji}</div>
+    <div><div class="row-title">${esc(b.name)}${b.demo ? '<span class="demo">DEMO</span>' : ''}</div>
+      <div class="row-sub">${esc(b.company || 'Gasto registrado')} · ${periodLabel(b.period)}</div></div>
+    <strong class="amt">${money(b.amount)}</strong>
+    <div class="row-meta" style="grid-column:2/-1"><span class="badge ${m.cls}">${m.icon} ${m.label}</span><span>${s === 'pagado' ? 'Pagado' : 'Vence'} ${fmtDate(s === 'pagado' && b.paidOn ? b.paidOn : b.due)}</span>${s !== 'pagado' && b.paid > 0 ? `<span>Pagado ${money(b.paid)} · Saldo ${money(b.balance)}</span>` : ''}</div>
+    ${withActions ? `<div class="row-actions"><button class="btn sm ghost" data-action="bill-detail" data-id="${b.id}">${isBill ? 'Ver factura' : 'Ver detalle'}</button>${s !== 'pagado' ? `<button class="btn sm" data-action="bill-pay" data-id="${b.id}">Registrar pago</button>` : ''}</div>` : ''}
+  </article>`;
+}
+function emptyBox(emoji, text) { return `<div class="empty"><div class="big" aria-hidden="true">${emoji}</div><p>${text}</p></div>`; }
+
+function viewHome() {
+  const st = Store.getSettings(), key = monthKey(todayISO());
+  const t = monthTotals(key), p = monthTotals(addMonths(key, -1));
+  const delta = p.total ? (t.total - p.total) / p.total * 100 : null;
+  const deltaTxt = delta === null ? 'Sin datos del mes anterior' :
+    `${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toLocaleString('es-AR', { maximumFractionDigits: 1 })}% ${delta >= 0 ? 'más' : 'menos'} que ${periodLabel(addMonths(key, -1))}`;
+  const dues = Store.getBills().filter(b => b.kind !== 'gasto' && b.status !== 'pagado').sort((a, b) => a.due.localeCompare(b.due)).slice(0, 5);
+  return `<div class="fade">
+    <div class="greet"><h1>¡Hola, Mateo y Salma! 👋</h1><p class="sub">Así viene ${esc(st.home)} este mes ${st.addressConfirmed && st.address ? ' · 📍 ' + esc(st.address) : ''}</p></div>
+    <div class="home-grid">
+      <section class="card hero span" aria-label="Resumen del mes">
+        <p class="sub">Gastos registrados · ${periodLabel(key)}</p>
+        <p class="big">${money(t.total)}</p>
+        <div class="hero-split"><div><small>✓ Total pagado</small><strong>${money(t.paid)}</strong></div><div><small>⏰ Total pendiente</small><strong>${money(t.pending)}</strong></div></div>
+        <span class="chip">${deltaTxt}</span>
+      </section>
+      <section class="card" aria-labelledby="hDues"><h2 id="hDues">Próximos vencimientos</h2>
+        <div class="rows">${dues.length ? dues.map(b => billRow(b)).join('') : (Store.getBills().length ? emptyBox('🎉', 'No tenés vencimientos pendientes.') : emptyBox('🧾', 'Todavía no hay facturas. Agregá un servicio y subí tu primera factura.'))}</div>
+      </section>
+      <div class="stack">
+        <section class="card" aria-labelledby="hQuick"><h2 id="hQuick">Accesos rápidos</h2>
+          <div class="quick">
+            <button data-action="open-invoice"><span class="em" aria-hidden="true">📄</span>Subir una factura</button>
+            <button data-action="service-new"><span class="em" aria-hidden="true">🔌</span>Agregar un servicio</button>
+            <button data-action="expense-new"><span class="em" aria-hidden="true">💸</span>Registrar un gasto</button>
+            <button data-action="product-new"><span class="em" aria-hidden="true">🛍️</span>Agregar un producto</button>
+          </div></section>
+      </div>
+    </div></div>`;
+}
+
+function monthYearSelects() {
+  const [y, m] = state.gastosMonth.split('-').map(Number), cy = Number(todayISO().slice(0, 4));
+  const months = Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${i + 1 === m ? 'selected' : ''}>${cap(new Date(Date.UTC(2020, i, 15)).toLocaleDateString('es-AR', { month: 'long', timeZone: 'UTC' }))}</option>`).join('');
+  const years = []; for (let i = cy - 2; i <= cy + 1; i++) years.push(`<option ${i === y ? 'selected' : ''}>${i}</option>`);
+  return `<label class="field" style="margin:0"><span class="sr-only">Mes</span><select id="gMonth" aria-label="Mes">${months}</select></label>
+          <label class="field" style="margin:0"><span class="sr-only">Año</span><select id="gYear" aria-label="Año">${years.join('')}</select></label>`;
+}
+/* Los gráficos reciben datos planos: luego pueden alimentarse desde Supabase sin tocar el HTML. */
+function renderCategoryBars(data) {
+  const max = Math.max(...data.map(d => d.total), 1);
+  return `<div class="bars" role="list">${data.map(d => `<div class="bar-row" role="listitem"><span aria-hidden="true">${d.emoji}</span>
+    <div><div style="display:flex;justify-content:space-between;font-weight:600;margin-bottom:4px"><span>${esc(d.name)}</span><span>${money(d.total)}</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${Math.max(4, d.total / max * 100)}%"></div></div></div><span></span></div>`).join('')}</div>`;
+}
+function renderMonthlyColumns(data, activeKey) {
+  const max = Math.max(...data.map(d => d.total), 1);
+  return `<div class="cols" role="list">${data.map(d => `<div class="col ${d.key === activeKey ? 'active' : ''}" role="listitem" title="${periodLabel(d.key)}: ${money(d.total)}" aria-label="${periodLabel(d.key)}: ${money(d.total)}">
+    <div class="col-bar" style="height:${d.total / max * 100}%"><div class="seg-pend" style="flex:${d.pending}"></div><div class="seg-paid" style="flex:${d.paid}"></div></div><small>${d.label}</small></div>`).join('')}</div>
+    <div class="legend"><span><i class="seg-paid"></i>Pagado</span><span><i class="seg-pend"></i>Pendiente</span></div>`;
+}
+function viewGastos() {
+  const key = state.gastosMonth, t = monthTotals(key), cats = categoryTotals(key);
+  return `<div class="fade"><div class="view-head"><div><h1>Gastos</h1><p class="sub">${periodLabel(key)}</p></div><button class="btn" data-action="expense-new">+ Registrar gasto</button></div>
+    <div class="filters" style="grid-template-columns:1fr 1fr">${monthYearSelects()}</div>
+    <div class="sum3">
+      <div class="card"><p class="lbl">Total del mes</p><p class="val">${money(t.total)}</p></div>
+      <div class="card"><p class="lbl">✓ Total pagado</p><p class="val">${money(t.paid)}</p></div>
+      <div class="card"><p class="lbl">⏰ Total pendiente</p><p class="val">${money(t.pending)}</p></div>
+    </div>
+    <div class="two" style="margin-top:16px">
+      <section class="card"><h2>Por categoría</h2>${cats.length ? renderCategoryBars(cats) : emptyBox('📭', 'Sin registros en este período.')}</section>
+      <section class="card"><h2>Últimos 6 meses</h2>${renderMonthlyColumns(monthlySeries(key), key)}</section>
+    </div>
+    <section style="margin-top:16px"><h2 style="font-size:1.05rem;margin-bottom:10px">Detalle por categoría</h2>
+      ${cats.length ? cats.map(c => `<details class="cat"><summary><div class="tile" aria-hidden="true">${c.emoji}</div><div class="grow">${esc(c.name)}<small>${c.items.length} ${c.items.length === 1 ? 'registro' : 'registros'}</small></div><strong>${money(c.total)}</strong></summary><div class="rows">${c.items.map(b => billRow(b, false).replace('<article class="row"', `<article class="row" tabindex="0" role="button" data-action="bill-detail" data-id="${b.id}" style="cursor:pointer"`)).join('')}</div></details>`).join('') : emptyBox('📭', 'Todavía no hay gastos en este período.')}
+    </section></div>`;
+}
+
+function filteredBills() {
+  const q = norm(state.billQ);
+  return Store.getBills().filter(b => b.kind !== 'gasto')
+    .filter(b => !q || norm(b.name + ' ' + b.company).includes(q))
+    .filter(b => !state.billService || b.serviceId === state.billService)
+    .filter(b => !state.billStatus || billState(b) === state.billStatus)
+    .filter(b => !state.billMonth || b.period === state.billMonth)
+    .sort((a, b) => b.due.localeCompare(a.due));
+}
+function renderBillList() {
+  const l = filteredBills(); const box = $('#billList'); if (!box) return;
+  box.innerHTML = l.length ? l.map(b => billRow(b)).join('') : emptyBox('🧾', Store.getBills().some(b => b.kind !== 'gasto') ? 'No encontramos facturas con esos filtros.' : 'Todavía no cargaste facturas. Tocá «+ Subir factura» para empezar.');
+  $('#billCount').textContent = `${l.length} ${l.length === 1 ? 'factura' : 'facturas'}`;
+}
+function viewFacturas() {
+  const services = Store.getServices();
+  const months = [...new Set(Store.getBills().map(b => b.period))].sort().reverse();
+  return `<div class="fade"><div class="view-head"><div><h1>Facturas</h1><p class="sub" id="billCount"></p></div><button class="btn" data-action="open-invoice">+ Subir factura</button></div>
+    <div class="filters">
+      <label class="field full" style="margin:0"><span class="sr-only">Buscar</span><input type="search" id="billSearch" placeholder="🔍 Buscar factura o empresa" value="${esc(state.billQ)}"></label>
+      <label class="field" style="margin:0"><span class="sr-only">Servicio</span><select id="billService" aria-label="Filtrar por servicio"><option value="">Todos los servicios</option>${services.map(s => `<option value="${s.id}" ${state.billService === s.id ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
+      <label class="field" style="margin:0"><span class="sr-only">Estado</span><select id="billStatus" aria-label="Filtrar por estado"><option value="">Todos los estados</option>${Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${state.billStatus === k ? 'selected' : ''}>${v.label}</option>`).join('')}</select></label>
+      <label class="field" style="margin:0"><span class="sr-only">Mes</span><select id="billMonth" aria-label="Filtrar por mes"><option value="">Todos los meses</option>${months.map(m => `<option value="${m}" ${state.billMonth === m ? 'selected' : ''}>${periodLabel(m)}</option>`).join('')}</select></label>
+    </div>
+    <div class="rows" id="billList"></div>
+    <p style="margin-top:18px"><button class="link" data-action="go" data-view="servicios">🔌 Administrar servicios →</button></p></div>`;
+}
+
+function viewServicios() {
+  const all = Store.getServices(), act = all.filter(s => !s.archived), arch = all.filter(s => s.archived);
+  const card = (s, archived) => `<article class="card svc"><div class="tile" aria-hidden="true">${catMeta(s.category).emoji}</div>
+    <div><div class="row-title">${esc(s.name)}${s.demo ? '<span class="demo">DEMO</span>' : ''}</div><div class="row-sub">${esc(s.company)} · ${esc(s.category)}</div>${s.description ? `<div class="row-sub">${esc(s.description)}</div>` : ''}</div>
+    <div class="row-actions" style="grid-column:1/-1">${archived ? `<button class="btn sm ghost" data-action="service-restore" data-id="${s.id}">Restaurar</button>` : `<button class="btn sm ghost" data-action="service-edit" data-id="${s.id}">Editar</button><button class="btn sm danger" data-action="service-archive" data-id="${s.id}">Archivar</button>`}</div></article>`;
+  return `<div class="fade"><div class="view-head"><div><button class="link" data-action="go" data-view="${state.from === 'ajustes' ? 'ajustes' : 'facturas'}">← Volver</button><h1>Servicios</h1></div><button class="btn" data-action="service-new">+ Agregar servicio</button></div>
+    <div class="rows">${act.length ? act.map(s => card(s, false)).join('') : emptyBox('🔌', 'Todavía no hay servicios activos. Tocá «+ Agregar servicio» para crear el primero.')}</div>
+    ${arch.length ? `<h2 style="font-size:1.05rem;margin:22px 0 10px">Archivados</h2><div class="rows">${arch.map(s => card(s, true)).join('')}</div>` : ''}</div>`;
+}
+
+function viewHogar() {
+  const n = pendingProducts().length;
+  const body = state.hogarTab === 'productos' ? `
+    <div class="view-head" style="margin-top:0"><p class="sub">Tocá un producto para sumarlo o quitarlo de la lista del súper.</p><button class="btn" data-action="product-new">+ Agregar producto</button></div>
+    <label class="field"><span class="sr-only">Buscar producto</span><input type="search" id="prodSearch" placeholder="🔍 Buscar producto" value="${esc(state.prodQ)}"></label>
+    <div class="chips" role="group" aria-label="Categorías">${['Todas', ...PRODUCT_CATEGORIES].map(c => `<button class="chip-btn" data-action="prod-cat" data-cat="${esc(c)}" aria-pressed="${state.prodCat === c}">${esc(c)}</button>`).join('')}</div>
+    <div class="pgrid" id="prodGrid"></div>
+    ${Store.getProducts().length ? '' : '<div class="card" style="margin-top:12px"><p class="sub" style="margin-bottom:10px">Todavía no hay productos. Agregá el primero o cargá un catálogo inicial de ejemplo (queda marcado como DEMO).</p><button class="btn ghost block" data-action="seed-products">Cargar catálogo inicial</button></div>'}` : `
+    <div id="shopList"></div>`;
+  return `<div class="fade"><div class="view-head"><h1>Mi hogar</h1></div>
+    <div class="seg" role="tablist"><button role="tab" aria-selected="${state.hogarTab === 'productos'}" data-action="hogar-tab" data-tab="productos">🏠 Productos</button>
+      <button role="tab" aria-selected="${state.hogarTab === 'lista'}" data-action="hogar-tab" data-tab="lista">🛒 Lista del súper <span class="count" data-badge>${n}</span></button></div>${body}</div>`;
+}
+function productCard(p) {
+  return `<button class="pcard" data-action="toggle-product" data-id="${p.id}" aria-pressed="${!!p.pending}" aria-label="${esc(p.name)}: ${p.pending ? 'en la lista del súper' : 'tocar para agregar a la lista del súper'}">
+    <span class="tag" aria-hidden="true">🛒 A comprar</span><span class="em" aria-hidden="true">${esc(p.emoji)}</span><span>${esc(p.name)}</span><small>${esc(p.category)}</small></button>`;
+}
+function renderProdGrid() {
+  const g = $('#prodGrid'); if (!g) return; const q = norm(state.prodQ);
+  const l = Store.getProducts().filter(p => (state.prodCat === 'Todas' || p.category === state.prodCat) && (!q || norm(p.name).includes(q)));
+  g.innerHTML = l.length ? l.map(productCard).join('') : `<div style="grid-column:1/-1">${emptyBox('🔍', 'No hay productos que coincidan.')}</div>`;
+}
+function renderShopList() {
+  const box = $('#shopList'); if (!box) return; const l = pendingProducts();
+  box.innerHTML = `<section class="card"><h2>Lista del súper</h2><p class="sub" style="margin:-6px 0 14px"><b id="shopCount">${l.length}</b> ${l.length === 1 ? 'producto pendiente' : 'productos pendientes'}</p>
+    <div class="rows">${l.length ? l.map(p => `<article class="row" style="grid-template-columns:auto 1fr auto"><div class="tile" aria-hidden="true">${esc(p.emoji)}</div><div><div class="row-title">${esc(p.name)}</div><div class="row-sub">${esc(p.category)}</div></div><button class="btn sm ghost" data-action="shop-remove" data-id="${p.id}" aria-label="Quitar ${esc(p.name)} de la lista">Quitar</button></article>`).join('') : emptyBox('🛒', 'Tu lista está vacía. Volvé a <b>Productos</b> y tocá lo que haga falta comprar.')}</div>
+    ${l.length ? `<div class="list-actions"><button class="btn" data-action="list-copy">📋 Copiar lista</button>${navigator.share ? '<button class="btn ghost" data-action="list-share">📤 Compartir</button>' : ''}</div>` : ''}</section>`;
+}
+
+function viewAjustes() {
+  const s = Store.getSettings(), theme = document.documentElement.dataset.theme;
+  const sw = (id, label, desc, on) => `<div class="switch-row"><div><b>${label}</b><small>${desc}</small></div><button class="switch" role="switch" aria-checked="${on}" aria-label="${label}" data-action="setting-toggle" data-key="${id}"></button></div>`;
+  return `<div class="fade"><div class="view-head"><h1>Ajustes</h1></div><div class="stack">
+    <section class="card"><h2>🏠 Mi hogar</h2><form id="homeForm">
+      <label class="field"><span>Nombre del hogar</span><input type="text" id="setHome" value="${esc(s.home)}" maxlength="60"></label>
+      <label class="field"><span>Dirección</span><input type="text" id="setAddress" value="${esc(s.address)}" maxlength="120" placeholder="Ej.: Obispo Oro 321, Córdoba Capital"><small>${s.addressConfirmed ? '' : 'Sin confirmar: escribila y guardá para confirmarla.'}</small></label>
+      <button class="btn block" type="submit">Guardar</button></form></section>
+    <section class="card"><h2>🌗 Apariencia</h2>
+      <div class="field"><span id="lblTheme" style="font-weight:700;font-size:.86rem">Tema</span><div class="radio-group" role="radiogroup" aria-labelledby="lblTheme">
+        <button role="radio" aria-checked="${theme === 'light'}" data-action="set-theme" data-theme="light">☀️ Claro</button><button role="radio" aria-checked="${theme === 'dark'}" data-action="set-theme" data-theme="dark">🌙 Oscuro</button></div></div>
+      <div class="field"><span id="lblAccent" style="font-weight:700;font-size:.86rem">Color de acento</span><div class="radio-group" role="radiogroup" aria-labelledby="lblAccent">
+        ${[['indigo', 'Índigo', '#5456e8'], ['teal', 'Turquesa', '#0a7c72'], ['rose', 'Rosa', '#d01b47']].map(([k, n, c]) => `<button role="radio" aria-checked="${s.accent === k}" data-action="set-accent" data-accent="${k}"><span class="swatch" style="background:${c}"></span>${n}</button>`).join('')}</div></div>
+      ${sw('reduceMotion', 'Reducir animaciones', 'Transiciones más sobrias', s.reduceMotion)}</section>
+    <section class="card"><h2>🔔 Notificaciones</h2>
+      ${sw('notifDue', 'Avisos de vencimientos', 'Preferencia guardada en este navegador', s.notifDue)}
+      ${sw('notifList', 'Recordatorio de la lista del súper', 'Preferencia guardada en este navegador', s.notifList)}
+      <div class="note warn" style="margin-top:12px"><span aria-hidden="true">ℹ️</span><span>En esta fase no se envían notificaciones reales. Estará disponible en la siguiente etapa.</span></div></section>
+    <section class="card"><h2>🔌 Servicios</h2><p class="sub" style="margin-bottom:12px">Administrá los proveedores y categorías de tus facturas.</p><button class="btn ghost block" data-action="go" data-view="servicios">Administrar servicios</button></section>
+    ${accountCard()}
+  </div></div>`;
+}
+
+const VIEWS = { home: viewHome, gastos: viewGastos, facturas: viewFacturas, servicios: viewServicios, hogar: viewHogar, ajustes: viewAjustes };
+function render(scroll = false) {
+  $main.innerHTML = VIEWS[state.view]();
+  if (state.view === 'facturas') renderBillList();
+  if (state.view === 'hogar') { state.hogarTab === 'productos' ? renderProdGrid() : renderShopList(); }
+  const navId = state.view === 'servicios' ? (state.from === 'ajustes' ? 'ajustes' : 'facturas') : state.view;
+  $$('.nav-btn').forEach(b => b.dataset.nav === navId ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
+  updateBadges();
+  if (scroll) window.scrollTo({ top: 0 });
+}
+function go(view) {
+  if (view === 'servicios') state.from = state.view === 'ajustes' ? 'ajustes' : 'facturas';
+  state.view = view; render(true);
+}
+function updateBadges() {
+  const n = pendingProducts().length;
+  $$('[data-nav="hogar"] .nav-badge').forEach(b => { b.textContent = n; b.hidden = !n; });
+  $$('[data-badge]').forEach(b => b.textContent = n);
+  const c = $('#shopCount'); if (c) c.textContent = n;
+}
+function buildNav() {
+  const html = NAV.map(n => `<button class="nav-btn" data-action="go" data-view="${n.id}" data-nav="${n.id}"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[n.id]}</svg><span>${n.label}</span>${n.id === 'hogar' ? '<span class="nav-badge" aria-label="productos pendientes" hidden>0</span>' : ''}</button>`).join('');
+  $('#bottomNav').innerHTML = html; $('#sideNav').innerHTML = html;
+}
+
+/* ---------- Tema, preferencias y avisos ---------- */
+function setTheme(t, announce = true) {
+  const root = document.documentElement;
+  root.classList.add('theming'); root.dataset.theme = t;
+  try { localStorage.setItem('md:theme', t); } catch {}
+  $('#themeSwitch').setAttribute('aria-checked', String(t === 'dark'));
+  $('meta[name="theme-color"]').content = t === 'dark' ? '#0d0f18' : '#f3f4fa';
+  $$('[data-action="set-theme"]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.theme === t)));
+  setTimeout(() => root.classList.remove('theming'), 400);
+  if (announce) toast(t === 'dark' ? '🌙 Modo oscuro activado' : '☀️ Modo claro activado');
+}
+function applyPrefs() {
+  const s = Store.getSettings();
+  document.documentElement.dataset.accent = s.accent;
+  document.documentElement.classList.toggle('reduce-motion', !!s.reduceMotion);
+  $$('[data-home-name]').forEach(e => e.textContent = s.home);
+  document.title = s.home;
+}
+function toast(msg, type = '') {
+  const el = document.createElement('div'); el.className = 'toast ' + type; el.textContent = msg; $('#toasts').appendChild(el);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 320); }, 2600);
+}
+
+/* ---------- 5. MODALES ---------- */
+let lastFocus = null, modalCleanup = null;
+function openModal(title, html, onMount) {
+  lastFocus = document.activeElement;
+  $('#modalTitle').textContent = title; $('#modalBody').innerHTML = html;
+  const root = $('#modalRoot'); root.hidden = false; document.body.classList.add('lock');
+  requestAnimationFrame(() => root.classList.add('open'));
+  if (onMount) modalCleanup = onMount($('#modalBody')) || null;
+  setTimeout(() => { const f = $('#modalBody input:not([type=file]),#modalBody select,#modalBody button'); (f || $('.modal header button')).focus({ preventScroll: true }); }, 60);
+}
+function closeModal() {
+  const root = $('#modalRoot'); if (root.hidden) return;
+  root.classList.remove('open'); document.body.classList.remove('lock');
+  if (modalCleanup) { modalCleanup(); modalCleanup = null; }
+  setTimeout(() => { root.hidden = true; $('#modalBody').innerHTML = ''; }, 250);
+  if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+}
+const formActions = (label, extra = '') => `<div class="form-actions"><button type="button" class="btn ghost" data-action="modal-close">Cancelar</button><button type="submit" class="btn">${label}</button></div>${extra}`;
+const catOptions = sel => CATEGORIES.map(c => `<option ${c.name === sel ? 'selected' : ''}>${c.emoji} ${c.name}</option>`).join('');
+const catFromOption = v => v.replace(/^\S+\s/, '');
+
+function openInvoiceModal() {
+  const services = activeServices();
+  openModal('Subir factura', `<form id="invForm" novalidate>
+    <div class="note" style="margin-bottom:14px"><span aria-hidden="true">🔒</span><span>El archivo se guarda en un espacio privado, visible solo para los miembros del hogar. Cargá los datos a mano: la lectura automática todavía no está activada.</span></div>
+    <label class="field"><span>Archivo (PDF, JPG, PNG o WEBP · máx. 10 MB)</span><input type="file" id="invFile" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"></label>
+    <div class="preview" id="invPreview" hidden></div>
+    <label class="field"><span>Servicio</span><select id="invService">${services.map(s => `<option value="${s.id}">${esc(s.name)} · ${esc(s.company)}</option>`).join('')}</select></label>
+    <button type="button" class="link" id="invNewToggle" aria-expanded="false">+ Crear servicio nuevo</button>
+    <div id="invNew" hidden style="margin:6px 0 10px;padding:14px;border-radius:14px;background:var(--tile)">
+      <label class="field"><span>Nombre del servicio</span><input type="text" id="nsName" maxlength="50"></label>
+      <label class="field"><span>Empresa proveedora</span><input type="text" id="nsCompany" maxlength="60"></label>
+      <label class="field" style="margin:0"><span>Categoría</span><select id="nsCat">${catOptions('Otros')}</select></label></div>
+    <div class="grid2"><label class="field"><span>Período</span><select id="invPeriod">${Array.from({ length: 12 }, (_, i) => { const k = addMonths(monthKey(todayISO()), 1 - i); return `<option value="${k}" ${i === 1 ? 'selected' : ''}>${periodLabel(k)}</option>`; }).join('')}</select></label>
+      <label class="field"><span>Vencimiento</span><input type="date" id="invDue" value="${addDays(todayISO(), 10)}"></label></div>
+    <label class="field"><span>Importe (ARS)</span><input type="number" id="invAmount" inputmode="decimal" min="0" step="1" placeholder="0"></label>
+    <div class="grid2"><label class="field"><span>Consumo (opcional)</span><input type="number" id="invCons" inputmode="decimal" min="0" step="any"></label><label class="field"><span>Unidad</span><select id="invUnit"><option>kWh</option><option>m³</option><option>otra</option></select></label></div>
+    ${formActions('Guardar factura')}</form>`, body => {
+    let url = null;
+    const file = $('#invFile', body), prev = $('#invPreview', body);
+    file.addEventListener('change', () => {
+      if (url) { URL.revokeObjectURL(url); url = null; }
+      const f = file.files[0]; if (!f) { prev.hidden = true; return; }
+      prev.hidden = false; const kb = (f.size / 1024).toFixed(0);
+      if (f.type.startsWith('image/')) { url = URL.createObjectURL(f); prev.innerHTML = `<img src="${url}" alt="Vista previa de la factura"><div><b>${esc(f.name)}</b><br>${kb} KB</div>`; }
+      else prev.innerHTML = `<span style="font-size:2.2rem" aria-hidden="true">📄</span><div><b>${esc(f.name)}</b><br>${kb} KB · sin vista previa</div>`;
+    });
+    $('#invNewToggle', body).addEventListener('click', e => {
+      const box = $('#invNew', body); box.hidden = !box.hidden; e.currentTarget.setAttribute('aria-expanded', String(!box.hidden));
+      e.currentTarget.textContent = box.hidden ? '+ Crear servicio nuevo' : '− Usar un servicio existente'; if (!box.hidden) $('#nsName', body).focus();
+    });
+    $('#invForm', body).addEventListener('submit', e => {
+      e.preventDefault();
+      const f = file.files[0]; if (!f) return toast('Elegí un archivo para continuar', 'bad');
+      if (!['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(f.type)) return toast('Formato no admitido: usá PDF, JPG, PNG o WEBP', 'bad');
+      if (f.size > 10 * 1024 * 1024) return toast('El archivo supera los 10 MB', 'bad');
+      const amount = Number($('#invAmount', body).value), due = $('#invDue', body).value;
+      if (!(amount > 0)) return toast('Ingresá un importe mayor a cero', 'bad');
+      if (!due) return toast('Indicá la fecha de vencimiento', 'bad');
+      const newSvc = !$('#invNew', body).hidden ? { name: $('#nsName', body).value.trim(), company: $('#nsCompany', body).value.trim(), category: catFromOption($('#nsCat', body).value) } : null;
+      if (newSvc && (!newSvc.name || !newSvc.company)) return toast('Completá nombre y empresa del servicio nuevo', 'bad');
+      const serviceId = newSvc ? null : $('#invService', body).value;
+      if (!newSvc && !serviceId) return toast('Primero creá un servicio', 'bad');
+      const cu = Number($('#invCons', body).value), period = $('#invPeriod', body).value;
+      busy(e.currentTarget, async () => { await Store.addInvoice({ file: f, serviceId, newService: newSvc, amount, due, period, consumption: cu > 0 ? { units: cu, unit: $('#invUnit', body).value } : null }); closeModal(); render(); toast('📄 Factura guardada. Revisá los datos y confirmala'); });
+    });
+    return () => { if (url) URL.revokeObjectURL(url); };
+  });
+}
+function openBillDetail(id) {
+  const b = Store.getBills().find(x => x.id === id); if (!b) return;
+  const s = billState(b), m = STATUS[s], c = catMeta(b.category);
+  openModal(b.kind === 'gasto' ? 'Detalle del gasto' : 'Detalle de la factura', `<div class="detail">
+    <div style="display:flex;gap:14px;align-items:center"><div class="tile" style="width:58px;height:58px;font-size:2rem" aria-hidden="true">${c.emoji}</div><div><h3>${esc(b.name)}${b.demo ? '<span class="demo">DEMO</span>' : ''}</h3><span class="badge ${m.cls}">${m.icon} ${m.label}</span></div></div>
+    <dl><dt>Empresa</dt><dd>${esc(b.company || '—')}</dd><dt>Categoría</dt><dd>${esc(b.category)}</dd><dt>Período</dt><dd>${periodLabel(b.period)}</dd>
+    <dt>Importe total</dt><dd>${money(b.amount)}</dd><dt>Total pagado</dt><dd>${money(b.paid)}</dd><dt>Saldo pendiente</dt><dd>${money(b.balance)}</dd>${b.consumption ? `<dt>Consumo</dt><dd>${b.consumption.units.toLocaleString('es-AR')} ${esc(b.consumption.unit)}</dd>` : ''}<dt>${b.kind === 'gasto' ? 'Fecha' : 'Vencimiento'}</dt><dd>${fmtDateLong(b.due)}</dd>
+    ${b.paidOn ? `<dt>Pagado el</dt><dd>${fmtDateLong(b.paidOn)}</dd><dt>Medio de pago</dt><dd>${esc(b.method || '—')}</dd>` : ''}
+    </dl>
+    <div id="detFiles" class="note"><span aria-hidden="true">📎</span><span>Buscando comprobantes…</span></div>
+    <div class="form-actions" style="margin-top:12px">${s === 'confirmar' ? `<button class="btn ghost" data-action="bill-confirm" data-id="${b.id}">Confirmar datos</button>` : ''}${s !== 'pagado' ? `<button class="btn" data-action="bill-pay" data-id="${b.id}">Registrar pago</button>` : `<button class="btn ghost" data-action="modal-close">Cerrar</button>`}${b.paid === 0 ? `<button class="btn danger" data-action="bill-delete" data-id="${b.id}">Eliminar</button>` : ''}</div></div>`, body => loadBillFiles(b, body));
+}
+function openPaymentModal(id) {
+  const b = Store.getBills().find(x => x.id === id); if (!b) return;
+  openModal('Registrar pago', `<form id="payForm" novalidate><p class="sub" style="margin-bottom:14px">${esc(b.name)} · ${periodLabel(b.period)}</p>
+    <label class="field"><span>Importe pagado (ARS)</span><input type="number" id="payAmount" inputmode="decimal" min="0" step="1" value="${b.balance}"></label>
+    <div class="grid2"><label class="field"><span>Fecha de pago</span><input type="date" id="payDate" value="${todayISO()}"></label>
+    <label class="field"><span>Medio</span><select id="payMethod">${PAY_METHODS.map(m => `<option>${m}</option>`).join('')}</select></label></div>
+    <div class="note" style="margin-bottom:6px"><span aria-hidden="true">💡</span><span>Total ${money(b.amount)} · Pagado ${money(b.paid)} · Saldo ${money(b.balance)}. Podés registrar un pago parcial. Esto solo deja constancia: no realiza ningún pago.</span></div>${formActions('Confirmar pago')}</form>`, body => {
+    $('#payForm', body).addEventListener('submit', e => {
+      e.preventDefault(); const amount = Number($('#payAmount', body).value), paidOn = $('#payDate', body).value;
+      if (!(amount > 0) || !paidOn) return toast('Revisá el importe y la fecha', 'bad');
+      if (amount > b.balance + 0.001) return toast('El pago supera el saldo pendiente (' + money(b.balance) + ')', 'bad');
+      busy(e.currentTarget, async () => { await Store.registerPayment(id, { amount, paidOn, method: $('#payMethod', body).value }); closeModal(); render(); toast('✓ Pago registrado'); });
+    });
+  });
+}
+function openExpenseModal() {
+  openModal('Registrar gasto', `<form id="expForm" novalidate>
+    <label class="field"><span>Descripción</span><input type="text" id="exName" maxlength="60" placeholder="Ej.: Reparación de canilla"></label>
+    <label class="field"><span>Categoría</span><select id="exCat">${catOptions('Otros')}</select></label>
+    <div class="grid2"><label class="field"><span>Importe (ARS)</span><input type="number" id="exAmount" inputmode="decimal" min="0" step="1"></label>
+    <label class="field"><span>Fecha</span><input type="date" id="exDate" value="${todayISO()}"></label></div>${formActions('Guardar gasto')}</form>`, body => {
+    $('#expForm', body).addEventListener('submit', e => {
+      e.preventDefault(); const name = $('#exName', body).value.trim(), amount = Number($('#exAmount', body).value), date = $('#exDate', body).value;
+      if (!name) return toast('Escribí una descripción', 'bad'); if (!(amount > 0)) return toast('Ingresá un importe mayor a cero', 'bad'); if (!date) return toast('Indicá la fecha', 'bad');
+      busy(e.currentTarget, async () => { await Store.addExpense({ name, category: catFromOption($('#exCat', body).value), amount, date }); closeModal(); render(); toast('💸 Gasto registrado'); });
+    });
+  });
+}
+function openProductModal() {
+  openModal('Agregar producto', `<form id="prodForm" novalidate>
+    <label class="field"><span>Nombre del producto</span><input type="text" id="prName" maxlength="40" placeholder="Ej.: Cepillo de dientes"></label>
+    <label class="field"><span>Categoría</span><select id="prCat">${PRODUCT_CATEGORIES.map(c => `<option>${c}</option>`).join('')}</select></label>
+    <div class="field"><span id="lblEm">Icono o emoji</span><input type="text" id="prEmoji" maxlength="8" value="🛒" aria-labelledby="lblEm" style="font-size:1.6rem;text-align:center">
+      <div class="emoji-pick" role="group" aria-label="Emojis sugeridos">${EMOJI_CHOICES.map(e => `<button type="button" data-emoji="${e}" aria-pressed="${e === '🛒'}" aria-label="Usar ${e}">${e}</button>`).join('')}</div></div>${formActions('Guardar producto')}</form>`, body => {
+    const input = $('#prEmoji', body), pick = $$('[data-emoji]', body);
+    const sync = () => pick.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.emoji === input.value.trim())));
+    pick.forEach(b => b.addEventListener('click', () => { input.value = b.dataset.emoji; sync(); }));
+    input.addEventListener('input', sync);
+    $('#prodForm', body).addEventListener('submit', e => {
+      e.preventDefault(); const name = $('#prName', body).value.trim().replace(/\s+/g, ' ');
+      if (!name) return toast('Escribí el nombre del producto', 'bad');
+      if (Store.getProducts().some(p => norm(p.name) === norm(name))) return toast(`«${name}» ya existe en Mi hogar`, 'bad');
+      const emoji = input.value.trim() || '🛒', cat = $('#prCat', body).value;
+      busy(e.currentTarget, async () => { await Store.addProduct({ name, emoji, category: cat }); closeModal(); if (state.view !== 'hogar' || state.hogarTab !== 'productos') { state.view = 'hogar'; state.hogarTab = 'productos'; state.prodCat = 'Todas'; state.prodQ = ''; } render(); toast(`${emoji} «${name}» agregado a Mi hogar`); });
+    });
+  });
+}
+function openServiceModal(id) {
+  const s = id ? Store.getServices().find(x => x.id === id) : null;
+  openModal(s ? 'Editar servicio' : 'Agregar servicio', `<form id="svcForm" novalidate>
+    <label class="field"><span>Nombre del servicio</span><input type="text" id="svName" maxlength="50" value="${esc(s?.name || '')}"></label>
+    <label class="field"><span>Empresa proveedora</span><input type="text" id="svCompany" maxlength="60" value="${esc(s?.company || '')}"></label>
+    <label class="field"><span>Categoría</span><select id="svCat">${catOptions(s?.category || 'Otros')}</select></label>
+    <label class="field"><span>Descripción (opcional)</span><textarea id="svDesc" maxlength="200">${esc(s?.description || '')}</textarea></label>${formActions(s ? 'Guardar cambios' : 'Guardar servicio')}</form>`, body => {
+    $('#svcForm', body).addEventListener('submit', e => {
+      e.preventDefault(); const name = $('#svName', body).value.trim(), company = $('#svCompany', body).value.trim();
+      if (!name || !company) return toast('Completá el nombre y la empresa', 'bad');
+      const data = { name, company, category: catFromOption($('#svCat', body).value), description: $('#svDesc', body).value.trim() };
+      busy(e.currentTarget, async () => { await (s ? Store.updateService(id, data) : Store.addService(data)); closeModal(); render(); toast(s ? '✓ Servicio actualizado' : '🔌 Servicio agregado'); });
+    });
+  });
+}
+function openConfirm(title, text, label, onOk) {
+  openModal(title, `<p style="margin-bottom:16px">${text}</p><div class="form-actions"><button class="btn ghost" data-action="modal-close">Cancelar</button><button class="btn danger" id="cfOk">${label}</button></div>`, body => {
+    $('#cfOk', body).addEventListener('click', () => { closeModal(); onOk(); });
+  });
+}
+
+/* ---------- Acciones ---------- */
+function listText() {
+  const l = pendingProducts();
+  return `🛒 Lista del súper · ${Store.getSettings().home}\n` + l.map(p => `• ${p.emoji} ${p.name} (${p.category})`).join('\n');
+}
+async function copyText(t) {
+  try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(t); return true; } } catch {}
+  const ta = document.createElement('textarea'); ta.value = t; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;opacity:0;top:0';
+  document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch {} ta.remove(); return ok;
+}
+async function toggleProduct(id, el) {
+  const p = Store.getProducts().find(x => x.id === id); if (!p) return;
+  const now = !p.pending;
+  if (el) el.setAttribute('aria-pressed', String(now));
+  try {
+    await Store.setProductPending(id, now);
+    if (el) el.setAttribute('aria-label', `${p.name}: ${now ? 'en la lista del súper' : 'tocar para agregar a la lista del súper'}`);
+    updateBadges(); toast(now ? `🛒 ${p.name} agregado a la lista del súper` : `✓ ${p.name} quitado de la lista`);
+  } catch (err) { if (el) el.setAttribute('aria-pressed', String(!now)); updateBadges(); toast(friendlyError(err), 'bad'); }
+}
+
+const ACTIONS = {
+  go: el => go(el.dataset.view),
+  'toggle-theme': () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'),
+  'set-theme': el => setTheme(el.dataset.theme),
+  'set-accent': el => { const s = Store.getSettings(); s.accent = el.dataset.accent; Store.saveSettings(s); applyPrefs(); render(); toast('🎨 Color de acento actualizado'); },
+  'setting-toggle': el => { const s = Store.getSettings(), k = el.dataset.key; s[k] = !s[k]; Store.saveSettings(s); applyPrefs(); el.setAttribute('aria-checked', String(s[k])); toast('Preferencia guardada en este navegador'); },
+  'modal-close': closeModal,
+  'open-invoice': openInvoiceModal, 'expense-new': openExpenseModal, 'product-new': openProductModal,
+  'service-new': () => openServiceModal(), 'service-edit': el => openServiceModal(el.dataset.id),
+  'service-archive': el => act(async () => { const s = await Store.setServiceArchived(el.dataset.id, true); render(); toast(`📦 «${s.name}» archivado`); }),
+  'service-restore': el => act(async () => { const s = await Store.setServiceArchived(el.dataset.id, false); render(); toast(`✓ «${s.name}» restaurado`); }),
+  'bill-detail': el => openBillDetail(el.dataset.id),
+  'bill-pay': el => { closeModal(); setTimeout(() => openPaymentModal(el.dataset.id), 280); },
+  'bill-confirm': el => act(async () => { await Store.confirmBill(el.dataset.id); closeModal(); render(); toast('✓ Datos confirmados'); }),
+  'bill-delete': el => { const id = el.dataset.id; closeModal(); setTimeout(() => openConfirm('Eliminar registro', 'Se eliminará el registro y su comprobante. Esta acción no se puede deshacer.', 'Eliminar', () => act(async () => { await Store.deleteBill(id); render(); toast('🗑️ Registro eliminado'); })), 280); },
+  'toggle-product': el => toggleProduct(el.dataset.id, el),
+  'prod-cat': el => { state.prodCat = el.dataset.cat; $$('[data-action="prod-cat"]').forEach(b => b.setAttribute('aria-pressed', String(b === el))); renderProdGrid(); },
+  'hogar-tab': el => { state.hogarTab = el.dataset.tab; render(); },
+  'shop-remove': el => act(async () => { const p = await Store.setProductPending(el.dataset.id, false); renderShopList(); updateBadges(); toast(`✓ ${p.name} quitado de la lista`); }),
+  'list-copy': async () => toast(await copyText(listText()) ? '📋 Lista copiada' : 'No se pudo copiar en este navegador', ''),
+  'list-share': async () => { try { await navigator.share({ title: 'Lista del súper', text: listText() }); } catch (e) { if (e.name !== 'AbortError') toast('No se pudo compartir', 'bad'); } },
+  'seed-products': el => act(async () => { await Store.seedProducts(); render(); toast('🛍️ Catálogo inicial cargado'); }),
+  'sign-out': () => act(() => Auth.signOut()),
+  'invite-new': () => openInviteModal()
+};
+
+/* ---------- 6. EVENTOS ---------- */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-action]'); if (!el) return;
+  const fn = ACTIONS[el.dataset.action]; if (fn) fn(el);
+});
+document.addEventListener('keydown', e => {
+  if (!$('#modalRoot').hidden) {
+    if (e.key === 'Escape') return closeModal();
+    if (e.key === 'Tab') {
+      const f = $$('.modal button,.modal input,.modal select,.modal textarea').filter(x => !x.disabled && x.offsetParent !== null);
+      if (!f.length) return; const a = f[0], z = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
+    }
+  }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('article[data-action]')) { e.preventDefault(); e.target.click(); }
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'prodSearch') { state.prodQ = e.target.value; renderProdGrid(); }
+  if (e.target.id === 'billSearch') { state.billQ = e.target.value; renderBillList(); }
+});
+document.addEventListener('change', e => {
+  const id = e.target.id;
+  if (id === 'billService') { state.billService = e.target.value; renderBillList(); }
+  if (id === 'billStatus') { state.billStatus = e.target.value; renderBillList(); }
+  if (id === 'billMonth') { state.billMonth = e.target.value; renderBillList(); }
+  if (id === 'gMonth' || id === 'gYear') { state.gastosMonth = `${$('#gYear').value}-${String($('#gMonth').value).padStart(2, '0')}`; render(); }
+});
+document.addEventListener('submit', e => {
+  if (e.target.id === 'homeForm') {
+    e.preventDefault();
+    const name = $('#setHome').value.trim() || DEFAULT_SETTINGS.home, address = $('#setAddress').value.trim();
+    busy(e.target, async () => { await Store.saveHousehold({ name, address }); applyPrefs(); render(); toast('🏠 Datos del hogar guardados'); });
+  }
+});
+
+/* Arranque: lo invoca main.js cuando hay sesión y hogar cargado */
+function startApp() {
+  buildNav();
+  applyPrefs();
+  setTheme(document.documentElement.dataset.theme, false);
+  render();
+}
+
+/* ---------- Helpers de operaciones asíncronas ---------- */
+async function act(fn) { try { await fn(); } catch (err) { console.error(err); toast(friendlyError(err), 'bad'); } }
+async function busy(form, fn) {
+  const btns = $$('button', form); btns.forEach(b => b.disabled = true);
+  try { await fn(); } catch (err) { console.error(err); toast(friendlyError(err), 'bad'); } finally { btns.forEach(b => b.disabled = false); }
+}
+async function loadBillFiles(b, body) {
+  const box = $('#detFiles', body); if (!box) return;
+  try {
+    const files = await Store.getAttachmentLinks(b.id);
+    box.innerHTML = '<span aria-hidden="true">📎</span><span>' + (files.length ? files.map(f => `<a class="link" href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">${esc(f.name)}</a>`).join('<br>') : 'Sin comprobante adjunto.') + '</span>';
+  } catch (err) { box.innerHTML = '<span aria-hidden="true">⚠️</span><span>No se pudo cargar el comprobante: ' + esc(friendlyError(err)) + '</span>'; }
+}
+function accountCard() {
+  const u = Store.getUser(), h = Store.getHousehold();
+  return `<section class="card"><h2>👥 Cuenta y miembros</h2>
+    <div class="switch-row"><span>Sesión</span><b style="word-break:break-all">${esc(u.email)}</b></div>
+    ${Store.getMembers().map(m => `<div class="switch-row"><span>${esc(m.name || 'Miembro')}</span><b>${m.role === 'owner' ? 'Administrador' : 'Miembro'}</b></div>`).join('')}
+    ${h.role === 'owner' ? '<button class="btn ghost block" style="margin-top:12px" data-action="invite-new">Invitar a otra persona</button>' : ''}
+    <button class="btn danger block" style="margin-top:12px" data-action="sign-out">Cerrar sesión</button></section>
+    <section class="card"><h2>ℹ️ Información</h2>
+      <div class="switch-row"><span>Zona horaria</span><b>America/Argentina/Cordoba</b></div>
+      <div class="switch-row"><span>Moneda</span><b>Peso argentino (ARS)</b></div>
+      <div class="note" style="margin-top:12px"><span aria-hidden="true">🔔</span><span>Los recordatorios de vencimientos todavía no están activos.</span></div></section>`;
+}
+function openInviteModal() {
+  openModal('Invitar al hogar', `<form id="invitForm" novalidate><p class="sub" style="margin-bottom:12px">Se genera un código de un solo uso que vence en 7 días. Si indicás un correo, solo esa cuenta podrá usarlo.</p>
+    <label class="field"><span>Correo de la persona (opcional)</span><input type="text" id="invMail" inputmode="email" autocapitalize="off"></label>${formActions('Generar código')}</form>`, body => {
+    $('#invitForm', body).addEventListener('submit', e => {
+      e.preventDefault(); const mail = $('#invMail', body).value.trim();
+      busy(e.currentTarget, async () => {
+        const code = await Store.createInvite(mail);
+        $('#modalBody').innerHTML = `<p class="sub">Compartí este código por un canal privado. Se muestra una sola vez:</p><p style="font-size:1.8rem;font-weight:800;letter-spacing:.12em;text-align:center;margin:16px 0;user-select:all">${esc(code)}</p><button class="btn block" data-action="modal-close">Listo</button>`;
+      });
+    });
+  });
+}
+
+
+return { startApp, render, applyPrefs };
+})();
+const M_gate = (() => {
+/* Pantallas previas a la app: acceso, recuperación de contraseña y alta/unión a un hogar. */
+const Auth = M_auth;
+const Homes = M_households;
+const { friendlyError } = M_errors;
+
+let handlers = { onSignedIn: () => {} };
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const init = h => { handlers = h; };
+
+function show(html) {
+  const g = $('#gate'); g.hidden = false; document.body.classList.add('lock');
+  g.innerHTML = `<div class="gate-card card fade">${html}<p id="gateMsg" class="note warn" role="alert" hidden style="margin-top:14px"></p></div>`;
+  const first = g.querySelector('input'); if (first) first.focus({ preventScroll: true });
+}
+function hide() { const g = $('#gate'); g.hidden = true; g.innerHTML = ''; document.body.classList.remove('lock'); }
+function msg(text, bad = true) { const m = $('#gateMsg'); if (!m) return; m.textContent = text; m.className = 'note' + (bad ? ' warn' : ''); m.hidden = !text; }
+async function submit(form, fn) {
+  const btns = [...form.querySelectorAll('button')]; btns.forEach(b => b.disabled = true); msg('');
+  try { await fn(new FormData(form)); } catch (e) { console.error(e); msg(friendlyError(e)); } finally { btns.forEach(b => b.disabled = false); }
+}
+const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
+const val = (fd, k) => String(fd.get(k) || '').trim();
+
+function showLoading(text = 'Cargando…') { show(`<div class="empty"><div class="big" aria-hidden="true">🏢</div><p>${esc(text)}</p></div>`); }
+function showError(err, retry) {
+  show(`<h1>No pudimos cargar tus datos</h1><p class="sub">${esc(friendlyError(err))}</p><button class="btn block" id="gRetry">Reintentar</button><button class="link" id="gOut">Cerrar sesión</button>`);
+  on('#gRetry', 'click', retry); on('#gOut', 'click', () => Auth.signOut());
+}
+function showConfigError(text) { show(`<h1>Falta la configuración</h1><p class="sub">${esc(text)}</p>`); }
+
+function showAuth(mode = 'login') {
+  const signup = mode === 'signup';
+  show(`<div class="brand" style="margin-bottom:14px"><span class="logo" aria-hidden="true">🏢</span><span>Mi Departamento</span></div>
+    <h1>${signup ? 'Crear cuenta' : 'Iniciar sesión'}</h1><p class="sub">${signup ? 'Usá tu correo real: lo vas a necesitar para confirmar la cuenta.' : 'Entrá con tu cuenta para ver el departamento.'}</p>
+    <form id="gForm" novalidate>
+      <label class="field"><span>Correo electrónico</span><input type="text" name="email" inputmode="email" autocomplete="email" autocapitalize="off"></label>
+      <label class="field"><span>Contraseña</span><input type="password" name="password" autocomplete="${signup ? 'new-password' : 'current-password'}" style="width:100%;min-height:48px;padding:10px 14px;border-radius:14px;border:1.5px solid var(--border);background:var(--bg);font-size:16px"></label>
+      ${signup ? '<label class="field"><span>Repetir contraseña</span><input type="password" name="password2" autocomplete="new-password" style="width:100%;min-height:48px;padding:10px 14px;border-radius:14px;border:1.5px solid var(--border);background:var(--bg);font-size:16px"></label>' : ''}
+      <button class="btn block" type="submit">${signup ? 'Crear cuenta' : 'Entrar'}</button></form>
+    <div class="stack" style="gap:2px;margin-top:10px"><button class="link" id="gSwitch">${signup ? 'Ya tengo cuenta' : 'Crear una cuenta'}</button>${signup ? '' : '<button class="link" id="gForgot">Olvidé mi contraseña</button>'}</div>`);
+  on('#gSwitch', 'click', () => showAuth(signup ? 'login' : 'signup')); on('#gForgot', 'click', showForgot);
+  on('#gForm', 'submit', e => { e.preventDefault(); submit(e.target, async fd => {
+    const email = val(fd, 'email').toLowerCase(), pw = String(fd.get('password') || '');
+    if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error('Ingresá un correo válido.');
+    if (pw.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres.');
+    if (signup) {
+      if (pw !== String(fd.get('password2') || '')) throw new Error('Las contraseñas no coinciden.');
+      const { session } = await Auth.signUp(email, pw);
+      if (session) return handlers.onSignedIn();
+      return msg('Te enviamos un correo para confirmar la cuenta. Después de confirmarlo, iniciá sesión.', false);
+    }
+    await Auth.signIn(email, pw); handlers.onSignedIn();
+  }); });
+}
+
+function showForgot() {
+  show(`<h1>Recuperar contraseña</h1><p class="sub">Te enviamos un enlace para elegir una nueva.</p>
+    <form id="gForm" novalidate><label class="field"><span>Correo electrónico</span><input type="text" name="email" inputmode="email" autocomplete="email"></label>
+    <button class="btn block" type="submit">Enviar enlace</button></form><button class="link" id="gBack">← Volver</button>`);
+  on('#gBack', 'click', () => showAuth('login'));
+  on('#gForm', 'submit', e => { e.preventDefault(); submit(e.target, async fd => {
+    const email = val(fd, 'email').toLowerCase(); if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error('Ingresá un correo válido.');
+    await Auth.resetPassword(email); msg('Si el correo existe, te llegará un enlace en unos minutos.', false);
+  }); });
+}
+
+function showReset() {
+  const st = 'width:100%;min-height:48px;padding:10px 14px;border-radius:14px;border:1.5px solid var(--border);background:var(--bg);font-size:16px';
+  show(`<h1>Elegí una nueva contraseña</h1><form id="gForm" novalidate>
+    <label class="field"><span>Nueva contraseña</span><input type="password" name="password" autocomplete="new-password" style="${st}"></label>
+    <label class="field"><span>Repetirla</span><input type="password" name="password2" autocomplete="new-password" style="${st}"></label>
+    <button class="btn block" type="submit">Guardar contraseña</button></form>`);
+  on('#gForm', 'submit', e => { e.preventDefault(); submit(e.target, async fd => {
+    const pw = String(fd.get('password') || ''); if (pw.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres.');
+    if (pw !== String(fd.get('password2') || '')) throw new Error('Las contraseñas no coinciden.');
+    await Auth.updatePassword(pw); handlers.onSignedIn();
+  }); });
+}
+
+/* Usuario autenticado pero sin hogar: el acceso solo se obtiene creando uno propio o con un código de invitación vigente. */
+function showOnboarding() {
+  show(`<h1>Tu hogar</h1><p class="sub">Todavía no estás en ningún hogar. Creá uno nuevo o unite con el código que te dio la otra persona.</p>
+    <form id="gCreate" novalidate><h2 style="font-size:1.05rem;margin-bottom:10px">🏠 Crear el hogar</h2>
+      <label class="field"><span>Nombre del hogar</span><input type="text" name="home" value="Mi Departamento" maxlength="60"></label>
+      <label class="field"><span>Tu nombre</span><input type="text" name="me" maxlength="40" placeholder="Ej.: Mateo"></label>
+      <button class="btn block" type="submit">Crear hogar</button></form>
+    <hr style="border:0;border-top:1px solid var(--border);margin:20px 0">
+    <form id="gJoin" novalidate><h2 style="font-size:1.05rem;margin-bottom:10px">🔑 Unirme con un código</h2>
+      <label class="field"><span>Código de invitación</span><input type="text" name="code" maxlength="20" autocapitalize="characters" autocomplete="off"></label>
+      <label class="field"><span>Tu nombre</span><input type="text" name="me" maxlength="40" placeholder="Ej.: Salma"></label>
+      <button class="btn block ghost" type="submit">Unirme</button></form>
+    <button class="link" id="gOut" style="margin-top:12px">Cerrar sesión</button>`);
+  on('#gOut', 'click', () => Auth.signOut());
+  on('#gCreate', 'submit', e => { e.preventDefault(); submit(e.target, async fd => {
+    if (!val(fd, 'me')) throw new Error('Escribí tu nombre.'); await Homes.create(val(fd, 'home'), val(fd, 'me')); handlers.onSignedIn();
+  }); });
+  on('#gJoin', 'submit', e => { e.preventDefault(); submit(e.target, async fd => {
+    if (!val(fd, 'code')) throw new Error('Ingresá el código de invitación.'); if (!val(fd, 'me')) throw new Error('Escribí tu nombre.');
+    await Homes.joinWithCode(val(fd, 'code'), val(fd, 'me')); handlers.onSignedIn();
+  }); });
+}
+
+return { init, hide, showLoading, showError, showConfigError, showAuth, showForgot, showReset, showOnboarding };
+})();
+const { supabase, configError } = M_supabase;
+const gate = M_gate;
+const { Store } = M_store;
+const { startApp } = M_app;
+
+let started = false;
+
+async function enter() {
+  gate.showLoading('Cargando tu hogar…');
+  try {
+    const hasHome = await Store.load();
+    if (!hasHome) return gate.showOnboarding();
+    if (!started) { started = true; startApp(); }
+    gate.hide();
+  } catch (err) {
+    console.error(err);
+    gate.showError(err, enter);
+  }
+}
+
+async function boot() {
+  gate.init({ onSignedIn: enter });
+  if (configError) return gate.showConfigError(configError);
+  // Solo se registra el estado de sesión; no se hacen llamadas a Supabase dentro del callback.
+  supabase.auth.onAuthStateChange(event => {
+    if (event === 'PASSWORD_RECOVERY') gate.showReset();
+    if (event === 'SIGNED_OUT') location.reload();
+  });
+  gate.showLoading();
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    if (!data.session) return gate.showAuth('login');
+    // Si volvemos desde el enlace de recuperación, onAuthStateChange mostrará el formulario de nueva contraseña.
+    if (location.hash.includes('type=recovery')) return;
+    await enter();
+  } catch (err) { gate.showError(err, boot); }
+}
+boot();
+
+</script>
+</body>
+</html>
